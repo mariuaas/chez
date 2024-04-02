@@ -641,6 +641,8 @@ pub fn main() !void {
     var ba = bs.toBoardArray(BoardTypes.fancy);
     ba.print();
 
+    printBits(0x40, BoardTypes.fancy, PlayerPiece.P);
+
     // var bb = get(BB.center);
     // var bb2 = setPos(bb, 44);
     // printBits(bb2, BoardTypes.simple, PieceType.P);
