@@ -114,7 +114,7 @@ pub const ColPcsState = packed struct {
     }
 
     pub fn occ(self: Self) BB {
-        return BB.fr64(self.white & self.black);
+        return self.col.white.cup(self.col.black);
     }
 };
 
@@ -138,31 +138,33 @@ pub const State = packed struct {
         return self.colpcs.occ();
     }
 
-    pub fn pcsAtSqr(self: Self, sqr: Sqr) ColPcs {
-        return self.colpcs.pcsAtSqr(sqr);
+    pub fn sqrToColPcs(self: Self, sqr: Sqr) ColPcs {
+        return self.colpcs.sqrToColPcs(sqr);
     }
 
     pub fn getColPcs(self: Self, e: ColPcs) BB {
         return self.colpcs.getColPcs(e);
     }
 
-    pub fn allies(self: Self) BB {
-        return switch (self.turn) {
+    pub fn allies(self: Self, col: Col) BB {
+        return switch (col) {
             .white => self.colpcs.col.white,
             .black => self.colpcs.col.black,
+            else => BB.frMsk(.empty),
         };
     }
 
-    pub fn enemies(self: Self) BB {
-        return switch (self.turn) {
+    pub fn enemies(self: Self, col: Col) BB {
+        return switch (col) {
             .white => self.colpcs.col.black,
             .black => self.colpcs.col.white,
+            else => BB.frMsk(.empty),
         };
     }
 
-    pub fn pAtt(self: Self, sqr: Sqr) BB {
+    pub fn pAtt(self: Self, sqr: Sqr, col: Col) BB {
         const p = BB.frSqr(sqr);
-        const e = self.enemies();
+        const e = self.enemies(col);
         const o = self.occ();
         if (self.turn == .white) {
             const rnk = BB.frRnk(._2);
@@ -195,12 +197,61 @@ pub const State = packed struct {
         const r = BB.frRnk(sqr.rank());
         return p.hypQ(o.cap(r)).cap(r).cup(p.hypQ(o.cap(f)).cap(f));
     }
+
+    pub fn qAtt(self: Self, sqr: Sqr) BB {
+        return self.rAtt(sqr).cup(self.bAtt(sqr));
+    }
+
+    pub fn kAtt(_: Self, sqr: Sqr) BB {
+        return BB.frSqr(sqr).kAtt();
+    }
+
+    pub fn attacks(self: Self, sqr: Sqr) BB {
+        const colpcs = self.sqrToColPcs(sqr);
+        const nall = self.allies(colpcs.toCol()).inv();
+        return switch (colpcs.toPcs()) {
+            .p => self.pAtt(sqr, colpcs.toCol()),
+            .n => self.nAtt(sqr).cap(nall),
+            .b => self.bAtt(sqr).cap(nall),
+            .r => self.rAtt(sqr).cap(nall),
+            .q => self.qAtt(sqr).cap(nall),
+            .k => self.kAtt(sqr).cap(nall),
+            else => BB.frMsk(.empty),
+        };
+    }
+
+    pub fn attackers(self: Self, sqr: Sqr) BB {
+        const colpcs = self.sqrToColPcs(sqr);
+        const col = colpcs.toCol();
+        const nall = self.allies(colpcs.toCol()).inv();
+        var a: BB = undefined;
+        if (col == .none) {
+            a = self.pAtt(sqr, .black).cup(self.pAtt(sqr, .white));
+        } else {
+            a = self.pAtt(sqr, col.opp());
+        }
+        a = a.cup(self.nAtt(sqr).cap(self.colpcs.pcs.n));
+        a = a.cup(self.bAtt(sqr).cap(self.colpcs.pcs.b));
+        a = a.cup(self.rAtt(sqr).cap(self.colpcs.pcs.r));
+        a = a.cup(self.qAtt(sqr).cap(self.colpcs.pcs.q));
+        a = a.cup(self.kAtt(sqr).cap(self.colpcs.pcs.k));
+        return a.cap(nall);
+    }
 };
 
 pub fn main() void {
-    var state = ColPcsState{};
+    var state = State{};
     // std.debug.print("{fancy|P}", .{BB.fr64(state.p)});
-    std.debug.print("{}\n", .{state.pcs.p});
+    std.debug.print("{}\n", .{state.colpcs.pcs.p});
     std.debug.print("{}\n", .{state.getColPcs(.R)});
     std.debug.print("{}\n", .{state.sqrToColPcs(.c3)});
+    std.debug.print("{}\n", .{state.attacks(.b1)});
+    std.debug.print("{}\n", .{state.attacks(.g8)});
+    std.debug.print("{}\n", .{state.attackers(.h6)});
+    // std.debug.print("{}\n", .{BB.frSqr(.d4).nAtt()});
+    // std.debug.print("{}\n", .{BB.frSqr(.d4).shiftW(1)});
+    // std.debug.print("{}\n", .{BB.frCumRL(CumRL.frInt(2))});
+    // std.debug.print("{}\n", .{BB.frCumLR(CumLR.frInt(2))});
+    // std.debug.print("{}\n", .{BB.frCumUD(CumUD.frInt(2))});
+    // std.debug.print("{}\n", .{BB.frCumDU(CumDU.frInt(2))});
 }

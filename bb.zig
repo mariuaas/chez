@@ -237,7 +237,7 @@ pub const BB = packed struct {
     }
 
     pub fn rev(self: Self) Self {
-        return @bitReverse(self.to64());
+        return fr64(@bitReverse(self.to64()));
     }
 
     pub fn lsb(self: Self) u7 {
@@ -254,7 +254,7 @@ pub const BB = packed struct {
 
     // Shift and attacks
     pub fn shiftN(self: Self, i: u3) Self {
-        fr64(return self.to64() << 8 * @as(u6, i));
+        return fr64(self.to64() << 8 * @as(u6, i));
     }
 
     pub fn shiftS(self: Self, i: u3) Self {
@@ -262,32 +262,32 @@ pub const BB = packed struct {
     }
 
     pub fn shiftW(self: Self, i: u3) Self {
-        var mask = CumLR.frInt(i + 1).to64();
+        var mask = ~CumRL.frInt(i).to64();
         return fr64((self.to64() >> i) & mask);
     }
 
     pub fn shiftE(self: Self, i: u3) Self {
-        var mask = CumRL.frInt(i).to64();
+        var mask = ~CumLR.frInt(i).to64();
         return fr64((self.to64() << i) & mask);
     }
 
     pub fn shiftNW(self: Self, i: u3) Self {
-        var mask = CumLR.frInt(i + 1).to64();
+        var mask = ~CumRL.frInt(i).to64();
         return fr64((self.to64() << 7 * @as(u6, i)) & mask);
     }
 
     pub fn shiftNE(self: Self, i: u3) Self {
-        var mask = CumRL.frInt(i).to64();
+        var mask = ~CumLR.frInt(i).to64();
         return fr64((self.to64() << 9 * @as(u6, i)) & mask);
     }
 
     pub fn shiftSW(self: Self, i: u3) Self {
-        var mask = CumLR.frInt(i + 1).to64();
+        var mask = ~CumRL.frInt(i).to64();
         return fr64((self.to64() >> 9 * @as(u6, i)) & mask);
     }
 
     pub fn shiftSE(self: Self, i: u3) Self {
-        var mask = CumRL.frInt(i).to64();
+        var mask = ~CumLR.frInt(i).to64();
         return fr64((self.to64() >> 7 * @as(u6, i)) & mask);
     }
 
@@ -303,19 +303,20 @@ pub const BB = packed struct {
     }
 
     pub fn nAtt(self: Self) Self {
-        return fr64(self.shiftE(1).shiftNE(1).to64() |
-            self.shiftN(1).shiftNW(1).to64() |
-            self.shiftN(1).shiftNE(1).to64() |
-            self.shiftW(1).shiftNW(1).to64() |
-            self.shiftW(1).shiftSW(1).to64() |
-            self.shiftS(1).shiftSW(1).to64() |
-            self.shiftS(1).shiftSE(1).to64() |
-            self.shiftE(1).shiftSE(1).to64());
+        return fr64(self.shiftE(2).shiftN(1).to64() |
+            self.shiftN(2).shiftE(1).to64() |
+            self.shiftN(2).shiftW(1).to64() |
+            self.shiftW(2).shiftN(1).to64() |
+            self.shiftW(2).shiftS(1).to64() |
+            self.shiftS(2).shiftW(1).to64() |
+            self.shiftS(2).shiftE(1).to64() |
+            self.shiftE(2).shiftS(1).to64());
     }
 
     pub fn hypQ(self: Self, occ: Self) Self {
-        const a = occ.subWrap(self.mulWrap(2));
-        const b = occ.rev().subWrap(self.rev().mulWrap(2)).rev();
+        const a = occ.subWrap(fr64(self.to64() *% 2));
+        // const b = occ.rev().subWrap(self.rev().mulWrap(2)).rev();
+        const b = occ.rev().subWrap(fr64(self.rev().to64() *% 2)).rev();
         return a.xor(b);
     }
 
@@ -646,39 +647,39 @@ pub fn BBVec(comptime n: comptime_int) type {
         }
 
         pub fn shiftW(self: Self, i: u3) Self {
-            const mask = Self.splatCumLR(CumLR.frInt(i + 1)).to64();
+            const mask = ~Self.splatCumRL(CumRL.frInt(i)).to64();
             const spl: @Vector(n, u6) = @splat(@as(u6, i));
             return fr64((self.to64() >> spl) & mask);
         }
 
         pub fn shiftE(self: Self, i: u3) Self {
-            const mask = Self.splatCumRL(CumRL.frInt(i)).to64();
+            const mask = ~Self.splatCumLR(CumLR.frInt(i)).to64();
             const spl: @Vector(n, u6) = @splat(@as(u6, i));
             return fr64((self.to64() << spl) & mask);
         }
 
         pub fn shiftNW(self: Self, i: u3) Self {
-            const mask = Self.splatCumLR(CumLR.frInt(i + 1)).to64();
+            const mask = ~Self.splatCumRL(CumRL.frInt(i)).to64();
             const spl: @Vector(n, u6) = @splat(7 * @as(u6, i));
             return fr64((self.to64() << spl) & mask);
         }
 
         pub fn shiftNE(self: Self, i: u3) Self {
-            const mask = Self.splatCumRL(CumRL.frInt(i)).to64();
+            const mask = ~Self.splatCumLR(CumLR.frInt(i)).to64();
             const spl: @Vector(n, u6) = @splat(9 * @as(u6, i));
             return fr64((self.to64() << spl) & mask);
         }
 
         pub fn shiftSW(self: Self, i: u3) Self {
-            const mask: @Vector(n, u64) = @splat(CumLR.arr[8 - @as(u4, i)]);
+            const mask = ~Self.splatCumRL(CumRL.frInt(i)).to64();
             const spl: @Vector(n, u6) = @splat(9 * @as(u6, i));
             return fr64((self.to64() >> spl) & mask);
         }
 
         pub fn shiftSE(self: Self, i: u3) Self {
-            const mask: @Vector(n, u64) = @splat(CumLR.arr[i]);
+            const mask = ~Self.splatCumLR(CumLR.frInt(i)).to64();
             const spl: @Vector(n, u6) = @splat(7 * @as(u6, i));
-            return fr64((self.to64() >> spl) & ~mask);
+            return fr64((self.to64() >> spl) & mask);
         }
 
         // Binary ops

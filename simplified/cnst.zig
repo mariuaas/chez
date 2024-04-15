@@ -1,135 +1,5 @@
 const std = @import("std");
 
-pub const Turn = enum(u1) {
-    const Self = @This();
-    pub const len = 2;
-    white,
-    black,
-
-    pub fn tag() type {
-        return @typeInfo(Self).Enum.tag_type;
-    }
-
-    pub fn frInt(n: Self.tag()) Self {
-        return @enumFromInt(n);
-    }
-
-    pub fn toInt(self: Self) Self.tag() {
-        return @intFromEnum(self);
-    }
-
-    pub fn opp(self: Self) Self {
-        return switch (self) {
-            .white => .black,
-            .black => .white,
-        };
-    }
-};
-
-pub const Cstl = enum(u4) { // KQkq
-    const Self = @This();
-    pub const len = 16;
-    const qmsk: Self.tag() = 0b0001;
-    const kmsk: Self.tag() = 0b0010;
-    const Qmsk: Self.tag() = 0b0100;
-    const Kmsk: Self.tag() = 0b1000;
-    const bmsk: Self.tag() = 0b0011;
-    const wmsk: Self.tag() = 0b1100;
-    pub const arr: [len]u64 = blk: {
-        var a: [Self.len]u64 = undefined;
-        for (0..len) |i| {
-            a[i] = Self.frInt(i).init64();
-        }
-        break :blk a;
-    };
-
-    none,
-    q,
-    k,
-    kq,
-    Q,
-    Qq,
-    Qk,
-    Qkq,
-    K,
-    Kq,
-    Kk,
-    Kkq,
-    KQ,
-    KQq,
-    KQk,
-    KQkq,
-
-    pub fn tag() type {
-        return @typeInfo(Self).Enum.tag_type;
-    }
-
-    pub fn frInt(n: Self.tag()) Self {
-        return @enumFromInt(n);
-    }
-
-    pub fn toInt(self: Self) Self.tag() {
-        return @intFromEnum(self);
-    }
-
-    pub fn init64(self: Self) u64 {
-        var out: u64 = 0;
-        var pos = self.toInt();
-        if (pos & qmsk) out |= Sqr.a1;
-        if (pos & kmsk) out |= Sqr.h1;
-        if (pos & Qmsk) out |= Sqr.a8;
-        if (pos & Kmsk) out |= Sqr.h8;
-        return out;
-    }
-
-    pub fn to64(self: Self) u64 {
-        return arr[self.toInt()];
-    }
-};
-
-pub const EnPs = enum(u5) {
-    const Self = @This();
-    pub const len = 17;
-    A,
-    B,
-    C,
-    D,
-    E,
-    F,
-    G,
-    H,
-    a,
-    b,
-    c,
-    d,
-    e,
-    f,
-    g,
-    h,
-    none,
-    _,
-
-    pub fn tag() type {
-        return @typeInfo(Self).Enum.tag_type;
-    }
-
-    pub fn frInt(n: Self.tag()) Self {
-        return @enumFromInt(@min(n, len - 1));
-    }
-
-    pub fn toInt(self: Self) Self.tag() {
-        return @intFromEnum(self);
-    }
-
-    pub fn to64(self: Self) u64 {
-        if (self == .none) return 0;
-        var i: u6 = self.toInt();
-        var r: u6 = 24 * (i / 8) + 16;
-        var f: u6 = i % 8;
-        return (@as(u64, 1) << f) << r;
-    }
-};
-
 pub const Col = enum(u2) {
     const Self = @This();
     pub const len = 3;
@@ -150,7 +20,7 @@ pub const Col = enum(u2) {
         return @intFromEnum(self);
     }
 
-    pub fn opp(self: Col) Col {
+    pub fn opp(self: Self) Col {
         return switch (self) {
             .white => .black,
             .black => .white,
@@ -493,15 +363,15 @@ pub const CumLR = enum(u4) {
         @memset(&z, 0);
         break :blk z;
     };
-    cz,
-    ca,
-    cb,
-    cc,
-    cd,
-    ce,
-    cf,
-    cg,
-    ch,
+    cum_z,
+    cum_a,
+    cum_b,
+    cum_c,
+    cum_d,
+    cum_e,
+    cum_f,
+    cum_g,
+    cum_h,
     _,
 
     pub fn tag() type {
@@ -556,15 +426,15 @@ pub const CumRL = enum(u4) {
         @memset(&z, 0);
         break :blk z;
     };
-    icz,
-    ica,
-    icb,
-    icc,
-    icd,
-    ice,
-    icf,
-    icg,
-    ich,
+    icum_z,
+    icum_a,
+    icum_b,
+    icum_c,
+    icum_d,
+    icum_e,
+    icum_f,
+    icum_g,
+    icum_h,
     _,
 
     pub fn tag() type {
@@ -614,15 +484,15 @@ pub const CumDU = enum(u4) {
         @memset(&z, 0);
         break :blk z;
     };
-    c0,
-    c1,
-    c2,
-    c3,
-    c4,
-    c5,
-    c6,
-    c7,
-    c8,
+    cum_0,
+    cum_1,
+    cum_2,
+    cum_3,
+    cum_4,
+    cum_5,
+    cum_6,
+    cum_7,
+    cum_8,
     _,
 
     pub fn tag() type {
@@ -677,15 +547,15 @@ pub const CumUD = enum(u4) {
         @memset(&z, 0);
         break :blk z;
     };
-    ic0,
-    ic1,
-    ic2,
-    ic3,
-    ic4,
-    ic5,
-    ic6,
-    ic7,
-    ic8,
+    icum_0,
+    icum_1,
+    icum_2,
+    icum_3,
+    icum_4,
+    icum_5,
+    icum_6,
+    icum_7,
+    icum_8,
     _,
 
     pub fn tag() type {
@@ -990,22 +860,208 @@ pub const Sqr = enum(u6) {
     }
 };
 
-pub const Enums = [10]type{ Rnk, Fil, PDia, NDia, CumLR, CumRL, CumDU, CumUD, Sqr, Msk };
+pub const Cstl = enum(u4) { // KQkq
+    const Self = @This();
+    pub const len = 16;
+    const qmsk: Self.tag() = 0b0001;
+    const kmsk: Self.tag() = 0b0010;
+    const Qmsk: Self.tag() = 0b0100;
+    const Kmsk: Self.tag() = 0b1000;
+    const bmsk: Self.tag() = 0b0011;
+    const wmsk: Self.tag() = 0b1100;
+    pub const arr: [len]u64 = blk: {
+        var a: [Self.len]u64 = undefined;
+        for (0..len) |i| {
+            a[i] = Self.frInt(i).init64();
+        }
+        break :blk a;
+    };
 
-test "enum to int" {
-    try std.testing.expect(Col.frInt(0) == Col.white);
-    try std.testing.expect(Col.white.opp().toInt() == 1);
-    try std.testing.expect(ColPcs.N.opp() == Pcs.n.toColPcs(.black));
-    // try std.testing.expect(Player.white.toInt() == 0);
-}
+    none,
+    q,
+    k,
+    kq,
+    Q,
+    Qq,
+    Qk,
+    Qkq,
+    K,
+    Kq,
+    Kk,
+    Kkq,
+    KQ,
+    KQq,
+    KQk,
+    KQkq,
 
-pub fn main() void {
-    std.debug.print("{any}\n", .{Col.none.opp()});
-    std.debug.print("{any}\n", .{Pcs.r.toColPcs(.white)});
-    std.debug.print("{any}\n", .{Pcs.r.toColPcs(.white).opp()});
-    std.debug.print("{any}\n", .{Sqr.e1.startingPiece()});
-    std.debug.print("{any}\n", .{@TypeOf(Sqr.Indexer.indexOf(.e1))});
-    // std.debug.print("{any}\n", .{@TypeOf([_]u6{ 4, 6, 12 })});
-    var numbers = [_]Sqr{ .a1, .a5, .b4, .b8 };
-    std.debug.print("{any}\n", .{Sqr.cup(numbers[0..])});
-}
+    pub fn tag() type {
+        return @typeInfo(Self).Enum.tag_type;
+    }
+
+    pub fn frInt(n: Self.tag()) Self {
+        return @enumFromInt(n);
+    }
+
+    pub fn toInt(self: Self) Self.tag() {
+        return @intFromEnum(self);
+    }
+
+    pub fn init64(self: Self) u64 {
+        var out: u64 = 0;
+        var pos = self.toInt();
+        if (pos & qmsk) out |= Sqr.a1;
+        if (pos & kmsk) out |= Sqr.h1;
+        if (pos & Qmsk) out |= Sqr.a8;
+        if (pos & Kmsk) out |= Sqr.h8;
+        return out;
+    }
+
+    pub fn to64(self: Self) u64 {
+        return arr[self.toInt()];
+    }
+};
+
+pub const EnPs = enum(u5) {
+    const Self = @This();
+    pub const len = 17;
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    a,
+    b,
+    c,
+    d,
+    e,
+    f,
+    g,
+    h,
+    none,
+    _,
+
+    pub fn tag() type {
+        return @typeInfo(Self).Enum.tag_type;
+    }
+
+    pub fn frInt(n: Self.tag()) Self {
+        return @enumFromInt(@min(n, len - 1));
+    }
+
+    pub fn toInt(self: Self) Self.tag() {
+        return @intFromEnum(self);
+    }
+
+    pub fn to64(self: Self) u64 {
+        if (self == .none) return 0;
+        const i: u6 = self.toInt();
+        const r: u6 = 24 * (i / 8) + 16;
+        const f: u6 = i % 8;
+        return (@as(u64, 1) << f) << r;
+    }
+
+    pub fn frColFil(col: Col, fil: Fil) Self {
+        if (col == .none) return .none;
+        const c: u5 = col.toInt();
+        const f: u5 = fil.toInt();
+        return frInt(f + 6 * c);
+    }
+};
+
+pub const Shift = enum(i7) { // King + Knight Shifts
+    const Self = @This();
+    pub const len = 16;
+    E = 1,
+    ENE = 10,
+    NE = 9,
+    NNE = 17,
+    N = 8,
+    NNW = 15,
+    NW = 7,
+    WNW = 6,
+    W = -1,
+    WSW = -10,
+    SW = -9,
+    SSW = -17,
+    S = -8,
+    SSE = -15,
+    SE = -7,
+    ESE = -6,
+    _,
+
+    pub fn tag() type {
+        return @typeInfo(Self).Enum.tag_type;
+    }
+
+    pub fn frInt(n: Self.tag()) Self {
+        return @enumFromInt(n);
+    }
+
+    pub fn toInt(self: Self) Self.tag() {
+        return @intFromEnum(self);
+    }
+
+    pub fn absInt(self: Self) u6 {
+        return @truncate(std.math.absCast(self.toInt()));
+    }
+
+    pub fn lshift(self: Self) bool {
+        const rd = self.rankDis();
+        return if (rd != 0) rd > 0 else self.fileDis() > 0;
+    }
+
+    pub fn fileDis(self: Self) i4 {
+        return switch (self) {
+            .E => 1,
+            .ENE => 2,
+            .NE => 1,
+            .NNE => 1,
+            .N => 0,
+            .NNW => -1,
+            .NW => -1,
+            .WNW => -2,
+            .W => -1,
+            .WSW => -2,
+            .SW => -1,
+            .SSW => -1,
+            .S => 0,
+            .SSE => 1,
+            .SE => 1,
+            .ESE => 2,
+            else => 0,
+        };
+    }
+
+    pub fn rankDis(self: Self) i4 {
+        return switch (self) {
+            .E => 0,
+            .ENE => 1,
+            .NE => 1,
+            .NNE => 2,
+            .N => 1,
+            .NNW => 2,
+            .NW => 1,
+            .WNW => 1,
+            .W => 0,
+            .WSW => -1,
+            .SW => -1,
+            .SSW => -2,
+            .S => -1,
+            .SSE => -2,
+            .SE => -1,
+            .ESE => -1,
+            else => 0,
+        };
+    }
+
+    pub fn king() [8]Self {
+        return [8]Self{ .E, .NE, .N, .NW, .W, .SW, .S, .SE };
+    }
+
+    pub fn knight() [8]Self {
+        return [8]Self{ .ENE, .NNE, .NNW, .WNW, .WSW, .SSW, .SSE, .ESE };
+    }
+};
